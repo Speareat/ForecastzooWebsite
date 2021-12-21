@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Enter here your predictions for the next 30 days{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    {% if pred %}
+        <form method="post">
+            <label for="title">Title (optional)</label>
+            <input name="title" id="title" value="{{ request.form['title'] or pred['title']}}">
+            <label for="body">Body : you can explain here your method (optional)</label>
+            <textarea name="body" id="body">{{ request.form['body'] or pred['body']}}</textarea>
+            {% for value in range(1, 31) %}
+            <label for="j+1">J+{{value}}</label>
+            <input type="number" name="pred{{value}}" id="pred{{value}}" min=0 value="{{pred['pred'+val[value-1]]}}"
+            required>
+            {% endfor %}
+            <input type="submit" value="Predict">
+        </form>
+
+    {% else %}
+        <form method="post">
+            <label for="title">Title (optional)</label>
+            <input name="title" id="title" value="{{ request.form['title']}}">
+            <label for="body">Body : you can explain here your method (optional)</label>
+            <textarea name="body" id="body">{{ request.form['body']}}</textarea>
+            {% for value in range(1, 31) %}
+            <label for="j+1">J+{{value}}</label>
+            <input type="number" name="pred{{value}}" id="pred{{value}}" min=0
+            required>
+            {% endfor %}
+            <input type="submit" value="Predict">
+        </form>
+    {% endif %}
+
+{% endblock %}

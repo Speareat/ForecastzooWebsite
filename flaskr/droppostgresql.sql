@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS users, post, preds, parameters CASCADE;

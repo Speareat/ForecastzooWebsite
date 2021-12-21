@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Enter here your csv file for the next 30 days of predictions{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <form method="post" enctype="multipart/form-data">
+        <label for="title">Title (optional)</label>
+        <input name="title" id="title" value="{{ request.form['title'] or pred['title']}}">
+        <label for="body">Body : you can explain here your method (optional)</label>
+        <textarea name="body" id="body">{{ request.form['body'] or pred['body']}}</textarea>
+        <input type="file" name="file" accept=".csv">
+        <input type="submit" value="Save">
+    </form>
+{% endblock %}

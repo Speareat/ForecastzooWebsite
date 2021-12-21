@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Overview
+    {% endblock %}
+
+{% block header %}
+  <h1>
+    <a href="{{ url_for('blog.index') }}">Overview</a>
+    |
+    <a href="{{ url_for('results.dashboard') }}">Results</a>
+    |
+    <a href="https://docs.google.com/document/d/1JQlBJyhpeE9ecEX2suQXlJ9F4iT06gEF9J5zdist098/edit?usp=sharing" target="_blank">Rules</a>
+  </h1>
+  
+  {% if g.user %}
+  
+    {% if boss %}
+      <a class="action" href="{{ url_for('blog.dldb') }}">Download Database</a>
+    {% endif %}
+    {% if g.monday %}
+      {% if g.edit %}
+        <a class="action" href="{{ url_for('predictions.choice_of_pred_type', changes='edit') }}">Edit</a>
+      {% else %}
+        <a class="action" href="{{ url_for('predictions.choice_of_pred_type', changes='new') }}">New</a>
+      {% endif %}
+    {% else %}
+      You can only post (or edit) predictions on mondays.
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+
+{% block content %}
+<p></p>
+Forecast zoo is a website allowing anyone to enter their predictions for the covid-19 situation. To motivate users, everyone's scores are put into competition, to find a winner every week. <p></p>
+Check the rules for more information ! <p></p>
+<p class="body">
+  <div id=i class='chart'”></div>
+</p>
+{% if graphJSON %}
+<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+<script type='text/javascript'>
+var graphs = {{graphJSON | safe}};
+Plotly.plot(i,graphs,{});
+</script>
+{% endif %}
+  {% for i in lenght %}
+    <article class="post">
+      <header>
+        <div>
+          <h1>{{ posts[i]['title'] }}</h1>
+          <a class="btn btn-primary" href="{{ url_for('predictions.see', id=posts[i]['id']) }}" role="button">See predictions</a>
+          <div class="about">by {{ posts[i]['username'] }} on {{ posts[i]['created'].strftime('%Y-%m-%d') }}</div>
+          <a class="btn btn-primary" href="{{ url_for('predictions.downloads', id=posts[i]['author_id'])}}" role="button">Download CSV</a>
+        </div>
+        {% if g.user['id'] == posts[i]['author_id'] and g.monday and g.edit and editable_id == posts[i]['id']%}
+          <!--
+          <a class="action" href="{{ url_for('blog.update', id=posts[i]['id']) }}">Edit</a>
+          -->
+          <a class="action" href="{{ url_for('predictions.choice_of_pred_type', changes='edit') }}" method="post">Edit</a>
+        {% endif %}
+      </header>
+      <p class="body">{{ posts[i]['body'] }}</p>
+      </article>
+      {% if not loop.last %}
+        <hr>
+      {% endif %}
+  {% endfor %}
+{% endblock %}

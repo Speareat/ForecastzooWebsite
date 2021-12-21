@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Results
+    {% endblock %}
+
+{% block header %}
+  <h1>
+    <a href="{{ url_for('blog.index') }}">Overview</a>
+    |
+    <a href="{{ url_for('results.dashboard') }}">Results</a>
+    |
+    <a href="https://docs.google.com/document/d/1JQlBJyhpeE9ecEX2suQXlJ9F4iT06gEF9J5zdist098/edit?usp=sharing" target="_blank">Rules</a>
+  </h1>
+  
+  {% if g.user %}
+    {% if g.monday %}
+      {% if g.edit %}
+        <a class="action" href="{{ url_for('predictions.choice_of_pred_type', changes='edit') }}">Edit</a>
+      {% else %}
+        <a class="action" href="{{ url_for('predictions.choice_of_pred_type', changes='new') }}">New</a>
+      {% endif %}
+    {% else %}
+      You can only post (or edit) predictions on mondays.
+    {% endif %}
+    {% if boss %}
+      <a class="action" href="{{ url_for('blog.dldb') }}">Download Database</a>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+.dropbtn {
+  background-color: #b9d6da52;
+  color: black;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f1f1f1;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #ddd;}
+
+.dropdown:hover .dropdown-content {display: block;}
+
+.dropdown:hover .dropbtn {background-color: #6DAAB152;}
+</style>
+</head>
+<body>
+
+<p></p>
+
+<div class="dropdown">
+  <button class="dropbtn"><b>{{ duration | safe }}</b></button>
+  <div class="dropdown-content">
+    <a href="{{ url_for('results.get_week', week=1) }}">One week</a>
+    <a href="{{ url_for('results.get_week', week=2) }}">Two weeks</a>
+    <a href="{{ url_for('results.get_week', week=3) }}">Three weeks</a>
+    <a href="{{ url_for('results.get_week', week=4) }}">One month</a>
+  </div>
+</div>
+    <p></p>
+
+    {% if items %}
+    <style>
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+        
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+        
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+        </style>
+        </head>
+        <body>
+        
+    <table>
+        <tr><th>Ranking</th><th>Pseudo</th><th>Date of post</th><th>MSE score</th></tr>
+        {% for item in items %}
+        <TR>
+            
+           <TD class="c1">{{item.ranking}} </TD>
+           <TD class="c2">{{item.username}}</TD>
+           <TD class="c3">{{item.date}}</TD>
+            {% if item.score != 2147483647 %}
+              <TD class="c5">{{item.score}}</TD>
+            {% else %}
+              <TD class="c5">Not enough data *</TD>
+            {% endif %}
+           <TD><a class="action" href="{{ url_for('predictions.see', id=item['id']) }}">See</a></TD>
+
+        </TR>
+        {% endfor %}
+        </table>
+    {%endif%}
+    <p></p>
+    * Predictions made less than 4 days ago do not appear in the scoreboard. It is due to the fact that real hospitalization values
+    are computed as a mean over 7 days to limit randomness of results.
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Do you want to enter your predictions manually, with a csv file or drawing with your mouse?{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <div>
+      <label>Click here for the latest hospitalisation data from Sciensano : </label>
+      <button onclick="window.location.href='https://epistat.sciensano.be/Data/COVID19BE_HOSP.csv';">Download</button>
+    </div>
+    <form method="post">
+        <div>
+            <input type="radio" id="manually" name="method" value="manually"
+                   checked>
+            <label for="manually">Manual input</label>
+          </div>
+        
+          <div>
+            <input type="radio" id="csvfile" name="method" value="csvfile">
+            <label for="csv">Csv input</label>
+          </div>
+
+          <div>
+            <input type="radio" id="draw" name="method" value="draw">
+            <label for="draw">Draw with your mouse !</label>
+          </div>
+
+
+        <input type="submit" value="Go to input">
+
+        <div>
+          <p>
+            <b>What is a prediction ?</b> <br />
+            For this prediction contest, every participant gives how he thinks the hospital admissions will evolve within 30 days. That is a prediction is just a sequence of numbers, one for each day. You can enter them manually, in a .csv file, or by drawing a line on the canvas. The number entered correspond to the number of new patients coming to hospital due to Covid-19 in Belgium.
+          <br />
+          If you choose to submit a .csv file, please put one number per line, nothing else.<br />
+          </p>
+        </div>
+    </form>
+{% endblock %}

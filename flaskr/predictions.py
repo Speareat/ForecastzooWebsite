@@ -404,7 +404,6 @@ def create_plot(pred_id, days_before=7):
 
 # cree le plotly express line avec les vraies donnees precedant la pred pour dessiner dessus
 def create_draw_plot(days_before=7):
-    print("PLOTTTTTT")
     real_hospi = get_mean_hospi()
     y_real = real_hospi.iloc[-7:]
     date_format = "%Y-%m-%d"
@@ -427,7 +426,6 @@ def create_draw_plot(days_before=7):
     plt.plot(x, y)
     plt.xticks(ticks=[x[i] for i in range(0,len(x), 5)])
     plt.ylim((0, 3*np.max(y[:nb_values])))
-    print("SAVEFIG")
 
     plt.savefig("flaskr\\data\\background.png")
     with open("flaskr\\static\\data\\maximax.txt", "w") as f:

@@ -100,7 +100,7 @@ def load_logged_in_user():
         elif datetime.today().strftime('%Y-%m-%d') == '2021-12-15':
             g.monday = None
         else:
-            g.monday = True
+            g.monday = None
 
 @bp.route('/logout')
 def logout():

@@ -40,7 +40,7 @@ window.addEventListener('load', ()=>{
       //canvas.style.backgroundRepeat = "no-repeat";
       //canvas.backgroundSize = "cover";
       ctx.canvas.width = ctx.canvas.clientWidth;
-      ctx.canvas.height = ctx.canvas.clientHeight*3;
+      ctx.canvas.height = ctx.canvas.clientHeight*4;
       canvas.style.background = "url('../../static/data/background.png')";
       canvas.style.backgroundRepeat = "no-repeat";
       canvas.style.backgroundSize = "100% 100%";
@@ -48,6 +48,7 @@ window.addEventListener('load', ()=>{
     
     // Stores the initial position of the cursor
     let coord = {x:0 , y:0}; 
+    let vals_coord = {x:0 , y:0}
        
     // This is the flag that we are going to use to 
     // trigger drawing
@@ -69,8 +70,10 @@ window.addEventListener('load', ()=>{
     // an event e is triggered to the coordinates where 
     // the said event is triggered.
     function getPosition(event){
-      coord.x = event.clientX - canvas.offsetLeft;
-      coord.y = event.clientY - canvas.offsetTop;
+      coord.x = event.pageX - canvas.offsetLeft;
+      coord.y = event.pageY - canvas.offsetTop;
+      vals_coord.x = event.clientX - canvas.offsetLeft;
+      vals_coord.y = event.clientY - canvas.offsetTop;
       if (in_box(coord.x, coord.y, canvas) && coord.x > old_x) {
         old_x = coord.x;
       }
@@ -92,8 +95,8 @@ window.addEventListener('load', ()=>{
       if (! in_box(coord.x, coord.y, canvas)) return;
       if (coord.x < old_x) return;
       
-      console.log([coord.x, coord.y])
-      drawed.push([coord.x, coord.y])
+      // console.log([coord.x, coord.y])
+      drawed.push([vals_coord.x, vals_coord.y])
 
       ctx.beginPath();
         

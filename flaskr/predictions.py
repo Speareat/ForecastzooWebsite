@@ -109,35 +109,42 @@ def draw_predictions(changes):
             max_y = valeurs_image_h[1] * deformation_max_y
             min_y = valeurs_image_h[2] * deformation_max_y
 
-            gap = (max_x-min_x)/30.0
+            # get last date of the graph
+            hospi_mean = get_mean_hospi()
+            last_date_graph = hospi_mean.iloc[-1]['DATE']
+            date_format = "%Y-%m-%d"
+            days_before = (datetime.datetime.today() - datetime.datetime.strptime(last_date_graph, date_format)).days 
+
+            gap = (max_x-min_x)/(30.0+days_before)
             max_gap = gap * 3
             y = []
 
             currX = min_x
             index = 0
 
-            for i in range(30):
-                while index<len(x_drawed)-1 and x_drawed[index] < currX:
+            for i in range(30+days_before):
+                while error is None and index<len(x_drawed)-1 and x_drawed[index] < currX:
                     index+=1
                 if x_drawed[index] == currX:
-                    y.append(y_drawed[index])
+                    if i > days_before-1:
+                        y.append(y_drawed[index])
                 else:
                     if index==0:
                         if x_drawed[index] > currX+gap:
                             error = "You must start next to the end of the previous curve."
-                        else:
+                        elif i > days_before-1:
                             y.append(y_drawed[index])
                     elif index==len(x_drawed)-1:
                         if x_drawed[index] < currX-gap:
                             error = "You must end next to the right side of the box."
-                        else:
+                        elif i > days_before-1:
                             y.append(y_drawed[index])
                     else:
                         point_gauche = x_drawed[index-1]
                         point_droite = x_drawed[index+1]
                         if point_droite-point_gauche > max_gap:
                             error = "You cannot let a gap bigger than 3 days."
-                        else:
+                        elif i > days_before-1:
                             y_gauche = y_drawed[index-1]
                             y_droite = y_drawed[index+1]
                             ratio = (currX - point_gauche) / (point_droite-point_gauche)

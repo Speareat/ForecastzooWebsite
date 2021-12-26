@@ -36,7 +36,6 @@ def choice_of_pred_type(changes):
     return render_template("predictions/choice_pred.html")
 
 
-# TODO
 @bp.route('/see/<int:id>', methods=('GET', 'POST'))
 def see(id):
     post = request_fetchone('SELECT * FROM preds WHERE id = ?', auto_keys('preds'),(id,))
@@ -121,6 +120,9 @@ def draw_predictions(changes):
 
             currX = min_x
             index = 0
+
+            if g.monday is None:
+                error = "Predictions are only allowed on mondays"
 
             for i in range(30+days_before):
                 while error is None and index<len(x_drawed)-1 and x_drawed[index] < currX:
@@ -225,6 +227,9 @@ def csv_predictions(changes):
         #ONLY used if g.edit
         change_title = True
         change_body = True
+        error = None
+        if g.monday is None:
+                error = "Predictions are only allowed on mondays"
 
         if title == "":
             change_title = False
@@ -246,44 +251,46 @@ def csv_predictions(changes):
 
         db = get_db()
 
-        #if g.edit:
-        if changes!="new":
-            previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
-            # put data in db
-            if not change_title:
-                title = previous['title']
-            if not change_body:
-                body = previous['body']
-            values = [title, body]
-            size = len(data)
-            for d in data:
-                values.append(int(d))
-            requestString = 'UPDATE preds SET title = ?, body = ?'
-            for i in range(1, size+1):
-                requestString = requestString+', pred'+str(i)+' = ?'
-            requestString = requestString + 'WHERE id = ?'
-            values.append(previous['id'])
-            insert_or_update(requestString, tuple(values))
-            return redirect(url_for("blog.index"))
+        if error is None:
+            if changes!="new":
+                previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
+                # put data in db
+                if not change_title:
+                    title = previous['title']
+                if not change_body:
+                    body = previous['body']
+                values = [title, body]
+                size = len(data)
+                for d in data:
+                    values.append(int(d))
+                requestString = 'UPDATE preds SET title = ?, body = ?'
+                for i in range(1, size+1):
+                    requestString = requestString+', pred'+str(i)+' = ?'
+                requestString = requestString + 'WHERE id = ?'
+                values.append(previous['id'])
+                insert_or_update(requestString, tuple(values))
+                return redirect(url_for("blog.index"))
 
 
+            else:
+                # put data in db
+                values = [g.user['id'], title, body]
+                size = len(data)
+                for d in data:
+                    values.append(int(d))
+                requestString = 'INSERT INTO preds (author_id, title, body'
+                appendString = '(?, ?, ?'
+                for i in range(1, size+1):
+                    requestString = requestString+', pred'+str(i)
+                    appendString = appendString+', ?'
+                requestString = requestString+') VALUES '+appendString+')'
+
+                insert_or_update(requestString, tuple(values))
+
+
+                return redirect(url_for("blog.index"))
         else:
-            # put data in db
-            values = [g.user['id'], title, body]
-            size = len(data)
-            for d in data:
-                values.append(int(d))
-            requestString = 'INSERT INTO preds (author_id, title, body'
-            appendString = '(?, ?, ?'
-            for i in range(1, size+1):
-                requestString = requestString+', pred'+str(i)
-                appendString = appendString+', ?'
-            requestString = requestString+') VALUES '+appendString+')'
-
-            insert_or_update(requestString, tuple(values))
-
-
-            return redirect(url_for("blog.index"))
+            flash(error)
         
     if changes=='edit':
         pred = get_pred_modif(str(g.user['id']))
@@ -309,46 +316,52 @@ def manual_predictions(changes):
         
         if body == "":
             change_body = False
+        
+        error = None
+        if g.monday is None:
+                error = "Predictions are only allowed on mondays"
 
 
         db = get_db()
+        if error is None:
+            if g.edit:
+            #if changes != "new":
+                previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
+                # put data in db
+                if not change_title:
+                    title = previous['title']
+                if not change_body:
+                    body = previous['body']
+                values = [title, body]
+                size = len(request.form)-2
+                for i in range(1, size+1):
+                    values.append(request.form['pred'+str(i)])
 
-        if g.edit:
-        #if changes != "new":
-            previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
-            # put data in db
-            if not change_title:
-                title = previous['title']
-            if not change_body:
-                body = previous['body']
-            values = [title, body]
-            size = len(request.form)-2
-            for i in range(1, size+1):
-                values.append(request.form['pred'+str(i)])
+                requestString = 'UPDATE preds SET title = ?, body = ?'
+                for i in range(1, size+1):
+                    requestString = requestString+', pred'+str(i)+' = ?'
+                requestString = requestString + 'WHERE id = ?'
+                values.append(previous['id'])
+                insert_or_update(requestString, tuple(values))
+                
+                return redirect(url_for("blog.index"))
+            else:
+                values = [g.user['id'], title, body]
+                size = len(request.form)-2
+                for i in range(1, size+1):
+                    values.append(request.form['pred'+str(i)])
+                requestString = 'INSERT INTO preds (author_id, title, body'
+                appendString = '(?, ?, ?'
+                for i in range(1, size+1):
+                    requestString = requestString+', pred'+str(i)
+                    appendString = appendString+', ?'
+                requestString = requestString+') VALUES '+appendString+')'
 
-            requestString = 'UPDATE preds SET title = ?, body = ?'
-            for i in range(1, size+1):
-                requestString = requestString+', pred'+str(i)+' = ?'
-            requestString = requestString + 'WHERE id = ?'
-            values.append(previous['id'])
-            insert_or_update(requestString, tuple(values))
-            
-            return redirect(url_for("blog.index"))
+                insert_or_update(requestString, tuple(values))
+
+                return redirect(url_for("blog.index"))
         else:
-            values = [g.user['id'], title, body]
-            size = len(request.form)-2
-            for i in range(1, size+1):
-                values.append(request.form['pred'+str(i)])
-            requestString = 'INSERT INTO preds (author_id, title, body'
-            appendString = '(?, ?, ?'
-            for i in range(1, size+1):
-                requestString = requestString+', pred'+str(i)
-                appendString = appendString+', ?'
-            requestString = requestString+') VALUES '+appendString+')'
-
-            insert_or_update(requestString, tuple(values))
-
-            return redirect(url_for("blog.index"))
+            flash(error)
 
     if changes=='edit':
         pred = get_pred_modif(str(g.user['id']))

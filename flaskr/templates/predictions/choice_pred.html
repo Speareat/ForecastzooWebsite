@@ -5,10 +5,14 @@
 {% endblock %}
 
 {% block content %}
-    <div>
-      <label>Click here for the latest hospitalisation data from Sciensano : </label>
-      <button onclick="window.location.href='https://epistat.sciensano.be/Data/COVID19BE_HOSP.csv';">Download</button>
-    </div>
+  <div>
+    <label>Click here for the latest hospitalisation data from Sciensano : </label>
+    <a href="https://epistat.sciensano.be/Data/COVID19BE_HOSP.csv">COVID19BE_HOSP.csv</a>
+  </div>
+  <div>
+    <label>If you want to see the latest curves about hospitalisation :</label>
+    <a href="http://www.covidata.be/hospi.html" target="_blank">Covidata.be</a>
+  </div>
     <form method="post">
         <div>
             <input type="radio" id="manually" name="method" value="manually"
@@ -21,10 +25,10 @@
             <label for="csv">Csv input</label>
           </div>
 
-          <!---<div>
+          <div>
             <input type="radio" id="draw" name="method" value="draw">
             <label for="draw">Draw with your mouse !</label>
-          </div>--->
+          </div>
 
 
         <input type="submit" value="Go to input">

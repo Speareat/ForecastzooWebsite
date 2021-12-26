@@ -71,7 +71,8 @@ def create_plot(pred_id, days_before=7):
     max_y = max_real
 
     if pred_id > 0 :
-        pred = list(pred.values())
+        if g.heroku:
+            pred = list(pred.values())
         # set values for prediction
         column_name = author['username']
         columns.append(column_name)

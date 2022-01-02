@@ -1,3 +1,4 @@
+from sqlite3.dbapi2 import DateFromTicks
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for, Response, send_file
 )
@@ -57,11 +58,14 @@ def create_plot(pred_id, days_before=7):
     df = pd.DataFrame(x, columns=['Journées'])
     columns = []
     # set values for real numbers
+    date_format = "%Y-%m-%d"
     column_name = 'Reality'
     columns.append(column_name)
     real_hospi = get_mean_hospi()
     last_date = real_hospi.iloc[-1]['DATE']
-    last_date = min(str(last_date), str(x[-1]))
+    last_date = datetime.datetime.strptime(last_date, date_format)
+    last_date = min(last_date, datetime.datetime.strptime(datetime.datetime.strftime(x[-1], date_format), date_format))
+    last_date = datetime.datetime.strftime(last_date, date_format)
     y_real = real_hospi.loc[real_hospi['DATE']>=str(x[0])]
     y_real = y_real.loc[y_real['DATE'] <= last_date]['NEW_IN']
     y_real = list(y_real)

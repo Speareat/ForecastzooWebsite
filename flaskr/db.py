@@ -19,16 +19,7 @@ def get_db():
             DATABASE_URL = os.environ['DATABASE_URL']
             g.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
             g.db = g.connection.cursor()
-            try:
-                _ = g.db.execute('SELECT * FROM preds')
-                _ = g.db.fetchone()
-            except:
-                g.connection.rollback()
-                g.db = g.connection.cursor()
-                begin = current_app.open_resource('droppostgresql.sql', 'r').read()
-                g.db.execute(begin)
-                next = current_app.open_resource('schemapostgresql.sql', 'r').read()
-                g.db.execute(next)
+            is_heroku_db_clean()
         else:
             print('local')
             g.db = sqlite3.connect(
@@ -36,13 +27,46 @@ def get_db():
                 detect_types=sqlite3.PARSE_DECLTYPES
             )
             g.db.row_factory = sqlite3.Row
-            try:
-                _ = g.db.execute('SELECT * FROM preds').fetchall()
-            except:
-                with current_app.open_resource('schema.sql') as f:
-                    g.db.executescript(f.read().decode('utf8'))
+            is_local_db_clean()
 
     return g.db
+
+
+def is_heroku_db_clean():
+    try:
+        _ = g.db.execute('SELECT * FROM preds')
+        _ = g.db.fetchone()
+    except:
+        g.connection.rollback()
+        g.db = g.connection.cursor()
+        begin = current_app.open_resource('droppostgresql.sql', 'r').read()
+        g.db.execute(begin)
+        next = current_app.open_resource('schemapostgresql.sql', 'r').read()
+        g.db.execute(next)
+    try:
+        _ = g.db.execute('SELECT * FROM means')
+        _ = g.db.fetchone()
+    except:
+        g.connection.rollback()
+        refresh_means()
+
+def is_local_db_clean():
+    try:
+        _ = g.db.execute('SELECT * FROM preds').fetchall()
+    except:
+        with current_app.open_resource('schema.sql') as f:
+            g.db.executescript(f.read().decode('utf8'))
+    try:
+        _ = g.db.execute('SELECT * FROM means').fetchall()
+    except:
+        refresh_means()
+def refresh_means():
+    if g.heroku:
+        g.db = g.connection.cursor()
+        g.db.execute(current_app.open_resource('means_table.sql', 'r').read())
+    else:
+        with current_app.open_resource('means_table.sql') as f:
+            g.db.executescript(f.read().decode('utf8'))
 
 def transform_to_postgresql(request):
     new_request = ''
@@ -123,6 +147,8 @@ def auto_keys(table):
         return ['id', 'author_id', 'created', 'title', 'body', 'pred1', 'pred2', 'pred3', 'pred4', 'pred5', 'pred6', 'pred7', 'pred8', 'pred9', 'pred10', 'pred11', 'pred12', 'pred13', 'pred14', 'pred15', 'pred16', 'pred17', 'pred18', 'pred19', 'pred20', 'pred21', 'pred22', 'pred23', 'pred24', 'pred25', 'pred26', 'pred27', 'pred28', 'pred29', 'pred30']
     if table == 'post':
         return ['id', 'author_id', 'created', 'title', 'body']
+    if table == 'means':
+        return ['date', 'value']
 
 
 def delete_all_non_mondays():

@@ -511,7 +511,6 @@ def get_mean_hospi():
             insert_or_update('INSERT INTO parameters (name, value) VALUES (?, ?)', ('hospi_mean_file', datetime.date.today().strftime('%Y-%m-%d')))
         else:
             insert_or_update('UPDATE parameters SET value = ? WHERE name = ?', (datetime.date.today().strftime('%Y-%m-%d'), 'hospi_mean_file'))
-        db.commit()
         return belgium_mean
     belgium_mean = pd.DataFrame(columns=['DATE', 'NEW_IN'])
     for dico in mean_in_db:

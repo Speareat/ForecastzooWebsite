@@ -2,12 +2,12 @@ import datetime
 from os import error
 from sqlite3.dbapi2 import DateFromTicks
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for, Response, make_response, send_file
+    Blueprint, flash, g, redirect, render_template, request, url_for, Response, make_response, send_file, current_app
 )
 from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
-from flaskr.db import auto_keys, get_db, insert_or_update, request_fetchone
+from flaskr.db import auto_keys, get_db, insert_or_update, refresh_means, request_fetchone, request_fetchall
 
 import pandas as pd
 import numpy as np
@@ -454,12 +454,77 @@ def create_draw_plot(days_before=7):
     #plt.show()
 
 
+def get_mean_hospi():
+    db = get_db()
+    path = 'data/Hospi_numbers/'
+    name_basefile = 'sciensano_hosp.csv'
+    filename = path+name_basefile 
+    update_hosp_mean = request_fetchone('SELECT * FROM parameters WHERE name = ?', auto_keys('parameters'), ('hospi_mean_file',))
+    mean_in_db = request_fetchall('SELECT * FROM means', auto_keys('means'))
+    #mean_in_db = []
+    if update_hosp_mean is None or update_hosp_mean['value'] != datetime.date.today().strftime('%Y-%m-%d') or mean_in_db==[]:
+        # DL new data
+        url = 'https://epistat.sciensano.be/Data/COVID19BE_HOSP.csv'
+        r = requests.get(url, allow_redirects=True)
+        open(filename, 'wb').write(r.content)
+        # open data
+        official_data = pd.read_csv(filename)
+        # somme des new in au niveau belge chaque jour
+        belgium_new_in = pd.DataFrame(columns=['DATE', 'NEW_IN'])
+        dates = []
+        for date in official_data['DATE']:
+            if date not in dates:
+                dates.append(date)
+        for date in dates:
+            that_day = official_data.loc[official_data['DATE'] == date]
+            sum = 0
+            for i in range(len(that_day)):
+                line = that_day.iloc[i]
+                sum += line['NEW_IN']
+            belgium_new_in = belgium_new_in.append({'DATE':date, 'NEW_IN':sum}, ignore_index=True)
+        # faire la moyenne centree sur 'days' jours
+        belgium_mean = pd.DataFrame(columns=['DATE', 'NEW_IN'])
+        days = 5
+        act_tab = []
+        act_sum = 0
+        i = 0
+        center = int(days/2)
+        for _ in range(days):
+            act_tab.append(belgium_new_in.iloc[i]['NEW_IN'])
+            act_sum += act_tab[i]
+            i += 1
+        while i < len(belgium_new_in):
+            row_center = belgium_new_in.iloc[center]
+            belgium_mean = belgium_mean.append({'DATE':row_center['DATE'], 'NEW_IN':act_sum/days}, ignore_index=True)
+            act_sum -= act_tab[0]
+            act_tab.remove(act_tab[0])
+            i += 1
+            center += 1
+            if i < len(belgium_new_in):
+                act_tab.append(belgium_new_in.iloc[i]['NEW_IN'])
+                act_sum += act_tab[-1]
+        for idx, row in belgium_mean.iterrows():
+            if idx > len(mean_in_db):
+                x, y = row['DATE'], row['NEW_IN']
+                insert_or_update('INSERT INTO means (date, value) VALUES (?, ?)', (x, y))
+        if update_hosp_mean is None:
+            insert_or_update('INSERT INTO parameters (name, value) VALUES (?, ?)', ('hospi_mean_file', datetime.date.today().strftime('%Y-%m-%d')))
+        else:
+            insert_or_update('UPDATE parameters SET value = ? WHERE name = ?', (datetime.date.today().strftime('%Y-%m-%d'), 'hospi_mean_file'))
+        db.commit()
+        return belgium_mean
+    belgium_mean = pd.DataFrame(columns=['DATE', 'NEW_IN'])
+    for dico in mean_in_db:
+        belgium_mean = belgium_mean.append({'DATE':dico['date'], 'NEW_IN':float(dico['value'])}, ignore_index=True)
+    return belgium_mean
+
+"""
     # check si on a deja les dernieres donnees d'hospi reelles
 def get_mean_hospi():
     db = get_db()
     path = 'data/Hospi_numbers/'
     name_basefile = 'sciensano_hosp.csv'
-    filename = path+name_basefile
+    filename = path+name_basefile 
     mean_hospi_filename = path+'hospi_mean.csv'
     update_hosp_mean = request_fetchone('SELECT * FROM parameters WHERE name = ?', auto_keys('parameters'), ('hospi_mean_file',))
     if update_hosp_mean is None or update_hosp_mean['value'] != datetime.date.today().strftime('%Y-%m-%d') or not os.path.isfile(mean_hospi_filename):
@@ -511,3 +576,4 @@ def get_mean_hospi():
         db.commit()
         return belgium_mean
     return pd.read_csv(mean_hospi_filename)
+"""

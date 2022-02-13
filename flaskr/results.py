@@ -50,9 +50,11 @@ def get_week(week):
 
     duration = "" 
     if week==1 : duration = 'Contest result for the past week'
-    if week==2 : duration = 'Contest result for the past 2 weeks'
-    if week==3 : duration = 'Contest result for the past 3 weeks'
-    if week==4 : duration = 'Contest result for the past month'
+    elif week==2 : duration = 'Contest result for the past 2 weeks'
+    elif week==3 : duration = 'Contest result for the past 3 weeks'
+    elif week==4 : duration = 'Contest result for the past month'
+    else:
+        return render_template('results/dashboard.html', duration="Choose the contest duration !")
     return render_template('results/dashboard.html', week=week, items=items, duration = duration)
 
 

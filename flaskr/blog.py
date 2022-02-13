@@ -92,34 +92,8 @@ def create_plot(pred_id, days_before=7):
 
 
 @bp.route('/create', methods=('GET', 'POST'))
-@login_required
 def create():
-    if request.method == 'POST':
-        title = request.form['title']
-        body = request.form['body']
-        files = request.files['file']
-
-        
-    
-        error = None
-
-        if not files :
-            error = 'Please import a .csv file'
-        if not title:
-            error = 'Title is required.'
-
-        if error is not None:
-            flash(error)
-        else:
-            try:  
-                data = pd.read_csv(files)
-            except:
-                flash('Impossible to read file.')
-            db = get_db()
-            insert_or_update('INSERT INTO post (title, body, author_id) VALUES (?, ?, ?)', (title, body, g.user['id']))
-            return redirect(url_for('blog.index'))
-
-    return render_template('blog/create.html')
+    return redirect(url_for('blog.index'))
 
 def get_post(id, check_author=True):
     post = request_fetchone('SELECT p.id, title, body, created, author_id, username'

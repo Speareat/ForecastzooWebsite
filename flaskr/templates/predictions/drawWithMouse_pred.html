@@ -72,8 +72,8 @@ window.addEventListener('load', ()=>{
     function getPosition(event){
       coord.x = event.pageX - canvas.offsetLeft;
       coord.y = event.pageY - canvas.offsetTop;
-      vals_coord.x = event.clientX - canvas.offsetLeft;
-      vals_coord.y = event.clientY - canvas.offsetTop;
+      vals_coord.x = event.pageX - canvas.offsetLeft;
+      vals_coord.y = event.pageY - canvas.offsetTop;
       if (in_box(coord.x, coord.y, canvas) && coord.x > old_x) {
         old_x = coord.x;
       }

@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS users, post, preds, parameters CASCADE;
+DROP TABLE IF EXISTS users, post, preds, parameters, means CASCADE;

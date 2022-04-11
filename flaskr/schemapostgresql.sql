@@ -48,3 +48,8 @@ CREATE TABLE preds (
   pred30 INTEGER NOT NULL,
   FOREIGN KEY (author_id) REFERENCES users (id)
 );
+
+CREATE TABLE means (
+  date TEXT PRIMARY KEY NOT NULL,
+  value TEXT NOT NULL
+);

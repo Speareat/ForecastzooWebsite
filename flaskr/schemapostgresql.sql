@@ -48,12 +48,3 @@ CREATE TABLE preds (
   pred30 INTEGER NOT NULL,
   FOREIGN KEY (author_id) REFERENCES users (id)
 );
-
-CREATE TABLE post (
-  id serial PRIMARY KEY,
-  author_id INTEGER NOT NULL,
-  created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  FOREIGN KEY (author_id) REFERENCES users (id)
-);

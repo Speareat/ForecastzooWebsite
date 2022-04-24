@@ -322,6 +322,7 @@ def manual_predictions(changes):
                 error = "Predictions are only allowed on mondays"
 
 
+
         db = get_db()
         if error is None:
             if g.edit:

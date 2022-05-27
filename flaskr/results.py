@@ -23,10 +23,12 @@ import os
 
 bp = Blueprint('results', __name__, url_prefix='/results')
 
+# Display the page results with the dropdown menu
 @bp.route('/', methods=('GET', 'POST'))
 def dashboard():
     return render_template('results/dashboard.html', duration="Choose the contest duration !")
 
+# Display the page results with the contest duration given as input
 @bp.route('/week<int:week>')
 def get_week(week):
     items = []
@@ -57,7 +59,7 @@ def get_week(week):
         return render_template('results/dashboard.html', duration="Choose the contest duration !")
     return render_template('results/dashboard.html', week=week, items=items, duration = duration)
 
-
+# Get all the predictions
 def get_preds():
     post = request_fetchall('SELECT U.username, P.id, P.created, P.pred1, P.pred2, P.pred3, P.pred4, P.pred5, P.pred6, P.pred7, P.pred8, P.pred9, P.pred10, P.pred11, P.pred12, P.pred13, P.pred14, P.pred15, P.pred16, P.pred17, P.pred18, P.pred19, P.pred20, P.pred21, P.pred22, P.pred23, P.pred24, P.pred25, P.pred26, P.pred27, P.pred28, P.pred29, P.pred30 from preds P, users U where U.id=P.author_id',
     ['username', 'id', 'created', 'pred1', 'pred2', 'pred3', 'pred4', 'pred5', 'pred6', 'pred7', 'pred8', 'pred9', 'pred10', 'pred11', 'pred12', 'pred13', 'pred14', 'pred15', 'pred16', 'pred17', 'pred18', 'pred19', 'pred20', 'pred21', 'pred22', 'pred23', 'pred24', 'pred25', 'pred26', 'pred27', 'pred28', 'pred29', 'pred30'])
@@ -66,6 +68,7 @@ def get_preds():
         abort(404, f"No predictions in the database")
     return post 
 
+# Get the score of a prediction
 def get_score(created, pred, real_hospi):
     str_created = created.strftime("%Y-%m-%d")
     real_hosp = real_hospi[real_hospi.DATE>=str_created]

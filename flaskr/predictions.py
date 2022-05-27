@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 bp = Blueprint('predictions', __name__, url_prefix='/predictions')
 
-
+# Handle the choice of the prediction model
 @bp.route('/<string:changes>', methods=('GET', 'POST'))
 def choice_of_pred_type(changes):
     if request.method == 'POST':
@@ -35,7 +35,7 @@ def choice_of_pred_type(changes):
 
     return render_template("predictions/choice_pred.html")
 
-
+# Allow to see a prediction (id given as input)
 @bp.route('/see/<int:id>', methods=('GET', 'POST'))
 def see(id):
     post = request_fetchone('SELECT * FROM preds WHERE id = ?', auto_keys('preds'),(id,))
@@ -43,7 +43,7 @@ def see(id):
     graphJSON=json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return render_template("predictions/see_pred.html", post=post, graphJSON = graphJSON)
 
-
+# Allow to download a prediction (id given as input)
 @bp.route('/downloads/<int:id>', methods=('GET', 'POST'))
 def downloads(id):
     pred = get_pred_modif(id)
@@ -55,15 +55,16 @@ def downloads(id):
     resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
     resp.headers["Content-Type"] = "text/csv"
     return resp
-    
+
+# Handle the drawn prediction
 @bp.route('/<string:changes>draw', methods=('GET', 'POST'))
 def draw_predictions(changes):
     if request.method =='POST':
         error = None
         title = request.form['title']
         body = request.form['body']
-        drawed = request.form['getDrawed']
-        drawed = drawed.split(',')
+        drawn = request.form['getDrawn']
+        drawn = drawn.split(',')
 
         #ONLY used if g.edit
         change_title = True
@@ -78,19 +79,22 @@ def draw_predictions(changes):
 
         # [canvas.clientLeft, canvas.clientTop, canvas.clientWidth, canvas.clientHeight]
         data_window = request.form['data_window']
-        if g.edit is None or len(drawed)>1:
+        # Case when the user draw a new prediction (or redraw to edit)
+        if g.edit is None or len(drawn)>1:
             data_window = data_window.split(',')
             for i in range(len(data_window)):
                 data_window[i]=int(data_window[i])
             
-            points_drawed = []
-            x_drawed = []
-            y_drawed = []
-            for i in range(0, len(drawed), 2):
-                points_drawed.append((int(drawed[i]), int(drawed[i+1])))
-                x_drawed.append(int(drawed[i]))
-                y_drawed.append(int(drawed[i+1]))
+            points_drawn = []
+            x_drawn = []
+            y_drawn = []
+            # Unpack each drawn point
+            for i in range(0, len(drawn), 2):
+                points_drawn.append((int(drawn[i]), int(drawn[i+1])))
+                x_drawn.append(int(drawn[i]))
+                y_drawn.append(int(drawn[i+1]))
             
+            # Pixel values to know the proportion of the canvas and compute the real values predicted
             valeurs_image_w = [0, 159, 576, 640]
             valeurs_image_h = [0, 59, 427, 480]
 
@@ -124,35 +128,37 @@ def draw_predictions(changes):
             if g.monday is None:
                 error = "Predictions are only allowed on mondays"
 
+            # Compute the prediction for each day
             for i in range(30+days_before):
-                while error is None and index<len(x_drawed)-1 and x_drawed[index] < currX:
+                while error is None and index<len(x_drawn)-1 and x_drawn[index] < currX:
                     index+=1
-                if x_drawed[index] == currX:
+                if x_drawn[index] == currX:
                     if i > days_before-1:
-                        y.append(y_drawed[index])
+                        y.append(y_drawn[index])
                 else:
                     if index==0:
-                        if x_drawed[index] > currX+gap:
+                        if x_drawn[index] > currX+gap:
                             error = "You must start next to the end of the previous curve."
                         elif i > days_before-1:
-                            y.append(y_drawed[index])
-                    elif index==len(x_drawed)-1:
-                        if x_drawed[index] < currX-gap:
+                            y.append(y_drawn[index])
+                    elif index==len(x_drawn)-1:
+                        if x_drawn[index] < currX-gap:
                             error = "You must end next to the right side of the box."
                         elif i > days_before-1:
-                            y.append(y_drawed[index])
+                            y.append(y_drawn[index])
                     else:
-                        point_gauche = x_drawed[index-1]
-                        point_droite = x_drawed[index+1]
+                        point_gauche = x_drawn[index-1]
+                        point_droite = x_drawn[index+1]
                         if point_droite-point_gauche > max_gap:
                             error = "You cannot let a gap bigger than 3 days."
                         elif i > days_before-1:
-                            y_gauche = y_drawed[index-1]
-                            y_droite = y_drawed[index+1]
+                            y_gauche = y_drawn[index-1]
+                            y_droite = y_drawn[index+1]
                             ratio = (currX - point_gauche) / (point_droite-point_gauche)
                             y.append(y_gauche+(ratio*(y_droite-y_gauche)))
                 currX += gap
             
+            # For each day, compute the prediction based on the pixel on the canvas
             if error is None:
                 min_hospi = 0
                 f = open("flaskr\\static\\data\\maximax.txt", "r")
@@ -167,6 +173,7 @@ def draw_predictions(changes):
                     preds.append(max(0, int(ratio * (max_hospi - min_hospi) + min_hospi)))
             
                 db = get_db()
+                # If it is an edition, update the prediction
                 if g.edit:
                     previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
                     # put data in db
@@ -185,6 +192,7 @@ def draw_predictions(changes):
                     values.append(previous['id'])
                     insert_or_update(requestString, tuple(values))
                     return redirect(url_for("blog.index"))
+                # If it is a new prediction, insert it
                 else:
                     values = [g.user['id'], title, body]
                     for i in range(len(preds)):
@@ -203,9 +211,9 @@ def draw_predictions(changes):
             else:
                 flash(error)
         else:
+            # Case when the user already made a pred and simply edited the title or body
             db = get_db()
             previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
-            # put data in db
             if not change_title:
                 title = previous['title']
             if not change_body:
@@ -218,6 +226,7 @@ def draw_predictions(changes):
     create_draw_plot()
     return render_template("predictions/drawWithMouse_pred.html")
 
+# Handle the csv prediction
 @bp.route('/<string:changes>csvfile', methods=('GET', 'POST'))
 def csv_predictions(changes):
     if request.method == 'POST':
@@ -231,6 +240,7 @@ def csv_predictions(changes):
         if g.monday is None:
                 error = "Predictions are only allowed on mondays"
 
+        # Load title, body and csv file
         if title == "":
             change_title = False
             title = 'Predictions of '+str(g.user['username'])+' ('+str(datetime.date.today())+')'
@@ -241,17 +251,17 @@ def csv_predictions(changes):
         files = request.files['file']
         
         data = None
+        # Read the csv file
         try:  
             data = pd.read_csv(files, header=None).to_numpy()
         except:
             flash('Impossible to read file.')
             return render_template("predictions/csv_pred.html")
         
-        
-
         db = get_db()
 
         if error is None:
+            # If it is an edition, update the prediction
             if changes!="new":
                 previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
                 # put data in db
@@ -271,7 +281,7 @@ def csv_predictions(changes):
                 insert_or_update(requestString, tuple(values))
                 return redirect(url_for("blog.index"))
 
-
+            # If it is a new prediction, insert it
             else:
                 # put data in db
                 values = [g.user['id'], title, body]
@@ -299,7 +309,7 @@ def csv_predictions(changes):
         pred = None
         return render_template("predictions/csv_pred.html", pred = pred)
 
-
+# Handle the manual prediction
 @bp.route('/<string:changes>manual', methods=('GET', 'POST'))
 def manual_predictions(changes):
     if request.method == 'POST':
@@ -309,7 +319,8 @@ def manual_predictions(changes):
         #ONLY used if g.edit
         change_title = True
         change_body = True
-
+        
+        # Load title and body
         if title == "":
             change_title = False
             title = 'Predictions of '+str(g.user['username'])+' ('+str(datetime.date.today())+')'
@@ -321,12 +332,10 @@ def manual_predictions(changes):
         if g.monday is None:
                 error = "Predictions are only allowed on mondays"
 
-
-
         db = get_db()
         if error is None:
+            # If it is an edition, update the prediction
             if g.edit:
-            #if changes != "new":
                 previous = request_fetchone("SELECT * FROM preds WHERE author_id = ? ORDER BY created DESC", auto_keys('preds'), (g.user['id'],))
                 # put data in db
                 if not change_title:
@@ -335,6 +344,7 @@ def manual_predictions(changes):
                     body = previous['body']
                 values = [title, body]
                 size = len(request.form)-2
+                # Load all the values of the prediction
                 for i in range(1, size+1):
                     values.append(request.form['pred'+str(i)])
 
@@ -346,9 +356,11 @@ def manual_predictions(changes):
                 insert_or_update(requestString, tuple(values))
                 
                 return redirect(url_for("blog.index"))
+            # If it is a new prediction, insert it
             else:
                 values = [g.user['id'], title, body]
                 size = len(request.form)-2
+                # Load all the values of the prediction
                 for i in range(1, size+1):
                     values.append(request.form['pred'+str(i)])
                 requestString = 'INSERT INTO preds (author_id, title, body'
@@ -371,7 +383,7 @@ def manual_predictions(changes):
         pred = None; val = None
         return render_template("predictions/manual_pred.html", pred = pred, val=val)
 
-
+# Load the prediction to edit (from the author id)
 def get_pred_modif(author_id, check_author=False):
     post = request_fetchone('SELECT title, body, pred1, pred2, pred3, pred4, pred5, pred6, pred7, pred8, pred9, pred10, pred11, pred12, pred13, pred14, pred15, pred16, pred17, pred18, pred19, pred20, pred21, pred22, pred23, pred24, pred25, pred26, pred27, pred28, pred29, pred30 from preds where author_id = ? order by created desc', 
     ['title', 'body', 'pred1', 'pred2', 'pred3', 'pred4', 'pred5', 'pred6', 'pred7', 'pred8', 'pred9', 'pred10', 'pred11', 'pred12', 'pred13', 'pred14', 'pred15', 'pred16', 'pred17', 'pred18', 'pred19', 'pred20', 'pred21', 'pred22', 'pred23', 'pred24', 'pred25', 'pred26', 'pred27', 'pred28', 'pred29', 'pred30'],
@@ -389,35 +401,47 @@ def get_pred_modif(author_id, check_author=False):
 # HELPERS
 
 # cree le plotly express line avec une pred et les vraies donnees precedant la pred
-def create_plot(pred_id, days_before=7):
-    db = get_db()
-    pred = request_fetchone('SELECT * FROM preds WHERE id = ?', auto_keys('preds'), (pred_id,))
-    author = request_fetchone('SELECT * FROM users WHERE id = ?', auto_keys('users'), (pred['author_id'],))
-    x = [pred['created']+datetime.timedelta(days=-days_before)+datetime.timedelta(days=i) for i in range(30+days_before)]
+def create_plot(pred_id, days_before=7): 
+    if pred_id > 0 :
+        db = get_db()
+        pred = request_fetchone('SELECT * FROM preds WHERE id = ?', auto_keys('preds'), (pred_id,))
+        author = request_fetchone('SELECT * FROM users WHERE id = ?', auto_keys('users'), (pred['author_id'],))
+        x = [pred['created']+datetime.timedelta(days=-days_before)+datetime.timedelta(days=i) for i in range(30+days_before)]
+    else : 
+        x = [datetime.date.today()+datetime.timedelta(days=-(3+days_before))+datetime.timedelta(days=i) for i in range(30+days_before)]
+    
     df = pd.DataFrame(x, columns=['Journées'])
     columns = []
     # set values for real numbers
+    date_format = "%Y-%m-%d"
     column_name = 'Reality'
     columns.append(column_name)
     real_hospi = get_mean_hospi()
+    # find last date (of pred or reality)
     last_date = real_hospi.iloc[-1]['DATE']
-    last_date = min(str(last_date), str(x[-1]))
-    y_real = real_hospi.loc[real_hospi['DATE']>=str(x[0]+datetime.timedelta(days=-1))]
+    last_date = datetime.datetime.strptime(last_date, date_format)
+    last_date = min(last_date, datetime.datetime.strptime(datetime.datetime.strftime(x[-1], date_format), date_format))
+    last_date = datetime.datetime.strftime(last_date, date_format)
+    # takes hospi values after the first date of prediction and before the last date (of prediction or reality)
+    y_real = real_hospi.loc[real_hospi['DATE']>=str(x[0])]
     y_real = y_real.loc[y_real['DATE'] <= last_date]['NEW_IN']
     y_real = list(y_real)
     max_real = max(y_real)
     y_real.extend([None for i in range(len(y_real), 30+days_before)])
     df.insert(1, column_name, y_real)
+    max_y = max_real
 
-    # set values for prediction
-    pred = list(pred.values())
-    column_name = author['username']
-    columns.append(column_name)
-    y_pred = [None for i in range(days_before)]
-    y_pred.extend(pred[5:])
-    df.insert(1, column_name, y_pred)
+    if pred_id > 0 :
+        if g.heroku:
+            pred = list(pred.values())
+        # set values for prediction
+        column_name = author['username']
+        columns.append(column_name)
+        y_pred = [None for i in range(days_before)]
+        y_pred.extend(pred[5:])
+        df.insert(1, column_name, y_pred)
 
-    max_y= max(max_real, max(pred[5:]))
+        max_y= max(max_real, max(pred[5:]))
 
     fig = px.line(df, x=x, y=columns, range_y=[0, max_y*2])
     return fig
@@ -454,7 +478,7 @@ def create_draw_plot(days_before=7):
 
     #plt.show()
 
-
+# Handle the centered rolling average of the hospital admissions
 def get_mean_hospi():
     db = get_db()
     path = 'data/Hospi_numbers/'
@@ -463,6 +487,7 @@ def get_mean_hospi():
     update_hosp_mean = request_fetchone('SELECT * FROM parameters WHERE name = ?', auto_keys('parameters'), ('hospi_mean_file',))
     mean_in_db = request_fetchall('SELECT * FROM means', auto_keys('means'))
     #mean_in_db = []
+    # if the centered rolling average of the hospital admissions is not completely computed, compute it and then return it
     if update_hosp_mean is None or update_hosp_mean['value'] != datetime.date.today().strftime('%Y-%m-%d') or mean_in_db==[]:
         # DL new data
         url = 'https://epistat.sciensano.be/Data/COVID19BE_HOSP.csv'
@@ -513,6 +538,7 @@ def get_mean_hospi():
         else:
             insert_or_update('UPDATE parameters SET value = ? WHERE name = ?', (datetime.date.today().strftime('%Y-%m-%d'), 'hospi_mean_file'))
         return belgium_mean
+    # if the centered rolling average of the hospital admissions is already computed, return it
     belgium_mean = pd.DataFrame(columns=['DATE', 'NEW_IN'])
     for dico in mean_in_db:
         belgium_mean = belgium_mean.append({'DATE':dico['date'], 'NEW_IN':float(dico['value'])}, ignore_index=True)

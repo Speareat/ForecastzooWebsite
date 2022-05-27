@@ -2,6 +2,7 @@ import os
 
 from flask import Flask, g
 
+# This method is used to create the application instance.
 def create_app(test_config=None):
 
     folder_database = './database'

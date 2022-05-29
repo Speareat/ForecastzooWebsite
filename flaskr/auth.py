@@ -11,7 +11,7 @@ from flaskr.db import auto_keys, get_db, insert_or_update, request_fetchall, req
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-
+# This is the register page.
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
     if request.method == 'POST':
@@ -52,7 +52,7 @@ def register():
 
     return render_template('auth/register.html')
 
-
+# This is the login page.
 @bp.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
@@ -76,6 +76,7 @@ def login():
     
     return render_template('auth/login.html')
 
+# This stores the logon user with some information about predictions.
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
@@ -97,16 +98,16 @@ def load_logged_in_user():
             g.edit = None
         if datetime.today().weekday() == 0:
             g.monday = True
-        elif datetime.today().strftime('%Y-%m-%d') == '2021-12-15':
-            g.monday = None
         else:
             g.monday = None # THIS VALUE CAN BE CHANGED TO TEST PREDICTION PAGES EVERY DAY
 
+# This logouts the user.
 @bp.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
+# This method checks if a user is logged in and enforces it.
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):

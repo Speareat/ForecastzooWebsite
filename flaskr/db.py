@@ -8,6 +8,8 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
+# Connect to the database, no matter if the website is on heroku or local, and checks if the database is clean
+# and store on g.heroku if the connection is on heroku or local
 def get_db():
     if 'db' not in g:
         if 'DATABASE_URL' in os.environ:
@@ -15,13 +17,11 @@ def get_db():
         else:
             g.heroku = False
         if g.heroku:
-            print('heroku')
             DATABASE_URL = os.environ['DATABASE_URL']
             g.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
             g.db = g.connection.cursor()
             is_heroku_db_clean()
         else:
-            print('local')
             g.db = sqlite3.connect(
                 current_app.config['DATABASE'],
                 detect_types=sqlite3.PARSE_DECLTYPES
@@ -31,7 +31,7 @@ def get_db():
 
     return g.db
 
-
+# Check if the database is clean, if not, drop the tables and create them again from scratch
 def is_heroku_db_clean():
     try:
         _ = g.db.execute('SELECT * FROM preds')
@@ -50,6 +50,7 @@ def is_heroku_db_clean():
         g.connection.rollback()
         refresh_means()
 
+# Check if the database is clean, if not, drop the tables and create them again from scratch
 def is_local_db_clean():
     try:
         _ = g.db.execute('SELECT * FROM preds').fetchall()
@@ -60,6 +61,8 @@ def is_local_db_clean():
         _ = g.db.execute('SELECT * FROM means').fetchall()
     except:
         refresh_means()
+
+# Drop and create the mean table
 def refresh_means():
     if g.heroku:
         g.db = g.connection.cursor()
@@ -68,6 +71,7 @@ def refresh_means():
         with current_app.open_resource('means_table.sql') as f:
             g.db.executescript(f.read().decode('utf8'))
 
+# Tranform the request to the postgresql format
 def transform_to_postgresql(request):
     new_request = ''
     for character in request:
@@ -77,6 +81,7 @@ def transform_to_postgresql(request):
             new_request += character
     return new_request
 
+# Apply the queries that changes the database (only insert, update, deletes)
 def insert_or_update(request, values=None):
     db = get_db()
     if g.heroku:
@@ -93,6 +98,7 @@ def insert_or_update(request, values=None):
             db.execute(request, values).fetchone()
         db.commit()
 
+# Convert the postgresql request results to a dico (as the result of a sqlite request)
 def data_to_dico(keys, data):
     if data is None:
         return None
@@ -101,6 +107,7 @@ def data_to_dico(keys, data):
         dico[keys[i]]=data[i]
     return dico
 
+# Apply the fetchone requests to the database (heroku or local)
 def request_fetchone(request, keys, values=None):
     db = get_db()
     if g.heroku:
@@ -118,6 +125,7 @@ def request_fetchone(request, keys, values=None):
         else:
             return db.execute(request, values).fetchone()
 
+# Apply the fetchall requests to the database (heroku or local)
 def request_fetchall(request, keys, values=None):
     db = get_db()
     if g.heroku:
@@ -138,6 +146,7 @@ def request_fetchall(request, keys, values=None):
         else:
             return db.execute(request, values).fetchall()
 
+# Returns the keys of the asked table
 def auto_keys(table):
     if table == 'parameters':
         return ['name', 'value']
@@ -150,7 +159,7 @@ def auto_keys(table):
     if table == 'means':
         return ['date', 'value']
 
-
+# Delete all predictions made another day than Monday
 def delete_all_non_mondays():
     all_preds = request_fetchall('SELECT * FROM preds', auto_keys('preds'))
     date_format = "%Y-%m-%d"
@@ -159,19 +168,21 @@ def delete_all_non_mondays():
             if pred['author_id'] == g.user['id']:
                 insert_or_update('DELETE FROM preds WHERE id = ?', (pred['id'],))
 
+# Close the database connection
 def close_db(e=None):
     db = g.pop('db', None)
 
     if db is not None:
         db.close()
 
+# Initialize the database
 def init_db():
     db = get_db()
 
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
 
-
+# Allow the command init-db
 @click.command('init-db')
 @with_appcontext
 def init_db_command():

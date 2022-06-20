@@ -18,6 +18,7 @@ import plotly.express as px
 import json
 import os
 import matplotlib.pyplot as plt
+import shutil
 
 bp = Blueprint('predictions', __name__, url_prefix='/predictions')
 
@@ -473,6 +474,8 @@ def create_draw_plot(days_before=7):
     plt.ylim((0, 3*np.max(y[:nb_values])))
 
     plt.savefig("flaskr\\data\\background.png")
+    # Thanks to that line the update of the background graph is automaticly done
+    shutil.move("flaskr\\data\\background.png", "flaskr\\static\\data\\background.png")
     with open("flaskr\\static\\data\\maximax.txt", "w") as f:
         f.write(str(3*np.max(y[:nb_values])))
 

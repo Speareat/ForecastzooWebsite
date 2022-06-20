@@ -74,6 +74,8 @@ def create_plot(pred_id, days_before=7):
     y_real = real_hospi.loc[real_hospi['DATE']>=str(x[0])]
     y_real = y_real.loc[y_real['DATE'] <= last_date]['NEW_IN']
     y_real = list(y_real)
+    if len(y_real ) < 3 :
+        return create_plot(pred_id, days_before = days_before+1)
     max_real = max(y_real)
     y_real.extend([None for i in range(len(y_real), 30+days_before)])
     df.insert(1, column_name, y_real)
